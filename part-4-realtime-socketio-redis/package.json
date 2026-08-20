@@ -1,0 +1,25 @@
+{
+  "name": "auction-house",
+  "private": true,
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "db:up": "../scripts/workshop-db up auction_part_4",
+    "db:down": "../scripts/workshop-db drop auction_part_4",
+    "db:reset": "npm run db:down && npm run db:up && npm run migrate",
+    "realtime:up": "docker compose -f ../docker-compose.yml up -d redis",
+    "migrate": "DATABASE_URL=postgres://auction:auction@localhost:55432/auction_part_4 npm run migrate --workspace server",
+    "dev": "API_PORT=3104 WEB_PORT=5104 DATABASE_URL=postgres://auction:auction@localhost:55432/auction_part_4 REDIS_URL=redis://localhost:56379 concurrently -k -n server,web \"npm run dev --workspace server\" \"npm run dev --workspace web\"",
+    "dev:distributed": "concurrently -k -n api-a,api-b,web \"API_PORT=3104 INSTANCE_ID=api-a DATABASE_URL=postgres://auction:auction@localhost:55432/auction_part_4 REDIS_URL=redis://localhost:56379 npm run dev --workspace server\" \"API_PORT=3204 INSTANCE_ID=api-b DATABASE_URL=postgres://auction:auction@localhost:55432/auction_part_4 REDIS_URL=redis://localhost:56379 npm run dev --workspace server\" \"API_PORT=3204 WEB_PORT=5104 VITE_SOCKET_URL=http://localhost:3104 npm run dev --workspace web\"",
+    "start": "npm run db:up && npm run realtime:up && npm run migrate && npm run dev",
+    "start:distributed": "npm run db:up && npm run realtime:up && npm run migrate && npm run dev:distributed",
+    "test": "DATABASE_URL=postgres://auction:auction@localhost:55432/auction_part_4 npm run test --workspace server && npm run test --workspace web",
+    "test:e2e:bidding-war": "playwright test e2e/bidding-war.spec.ts --headed --project=chrome",
+    "test:e2e:bidding-rules": "playwright test e2e/bidding-rules.spec.ts --headed --project=chrome",
+    "test:e2e:distributed": "DISTRIBUTED_REALTIME=1 playwright test e2e/distributed-realtime.spec.ts --headed --project=chrome",
+    "demo:bidding-war": "KEEP_BIDDING_WAR_OPEN=1 npm run test:e2e:bidding-war"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "concurrently": "^9.2.1"
+  }
+}
