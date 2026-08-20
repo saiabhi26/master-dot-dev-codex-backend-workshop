@@ -1,0 +1,29 @@
+{
+  "name": "auction-house",
+  "private": true,
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "db:up": "../scripts/workshop-db up auction_part_7",
+    "db:down": "../scripts/workshop-db drop auction_part_7",
+    "db:reset": "npm run db:down && npm run db:up && npm run migrate",
+    "infra:up": "docker compose -f ../docker-compose.yml up -d redis rabbitmq",
+    "realtime:up": "docker compose -f ../docker-compose.yml up -d redis",
+    "migrate": "DATABASE_URL=postgres://auction:auction@localhost:55432/auction_part_7 npm run migrate --workspace server",
+    "dev": "API_PORT=3107 WEB_PORT=5107 DATABASE_URL=postgres://auction:auction@localhost:55432/auction_part_7 REDIS_URL=redis://localhost:56379 RABBITMQ_URL=amqp://auction:auction@localhost:56726 concurrently -k -n api,web,close,notify,stripe \"npm run dev --workspace server\" \"npm run dev --workspace web\" \"npm run dev:close-worker --workspace server\" \"npm run dev:notification-worker --workspace server\" \"npm run dev --prefix ../stripe-service\"",
+    "dev:distributed": "DATABASE_URL=postgres://auction:auction@localhost:55432/auction_part_7 REDIS_URL=redis://localhost:56379 RABBITMQ_URL=amqp://auction:auction@localhost:56726 concurrently -k -n api-a,api-b,web,close,notify,stripe \"API_PORT=3107 INSTANCE_ID=api-a npm run dev --workspace server\" \"API_PORT=3207 INSTANCE_ID=api-b npm run dev --workspace server\" \"API_PORT=3207 WEB_PORT=5107 VITE_SOCKET_URL=http://localhost:3107 npm run dev --workspace web\" \"npm run dev:close-worker --workspace server\" \"npm run dev:notification-worker --workspace server\" \"npm run dev --prefix ../stripe-service\"",
+    "start": "npm run db:up && npm run infra:up && npm run migrate && npm run dev",
+    "start:distributed": "npm run db:up && npm run infra:up && npm run migrate && npm run dev:distributed",
+    "test": "DATABASE_URL=postgres://auction:auction@localhost:55432/auction_part_7 npm run test --workspace server && npm run test --workspace web && npm test --prefix ../stripe-service",
+    "test:e2e:bidding-war": "playwright test e2e/bidding-war.spec.ts --headed --project=chrome",
+    "test:e2e:bidding-rules": "playwright test e2e/bidding-rules.spec.ts --headed --project=chrome",
+    "test:e2e:distributed": "DISTRIBUTED_REALTIME=1 playwright test e2e/distributed-realtime.spec.ts --headed --project=chrome",
+    "test:e2e:notifications": "playwright test e2e/auction-ended-notifications.spec.ts --headed --project=chrome",
+    "test:e2e:checkout": "playwright test e2e/winner-checkout.spec.ts --headed --project=chrome",
+    "test:e2e:identity": "playwright test e2e/tab-scoped-identity.spec.ts --headed --project=chrome",
+    "demo:bidding-war": "KEEP_BIDDING_WAR_OPEN=1 npm run test:e2e:bidding-war"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "concurrently": "^9.2.1"
+  }
+}
